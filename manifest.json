@@ -1,0 +1,12 @@
+{
+    "manifest_version": 3,
+    "name": "Rocket Advisor",
+    "version": "1.0",
+    "description": "Extension para deteccion de sitios web peligrosos.",
+    "action":{
+        "default_popup": "popup.html",
+        "default_icon": "icon.png"
+    },
+    "permissions":["activeTab", "tabs", "storage"],
+    "host_permissions": ["<all_urls>"]
+}
