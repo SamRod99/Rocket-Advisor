@@ -1,9 +1,72 @@
-const blacklist = [
-  "roblox.com",
-  "netflix.com",
-  "youtube.com"
-];
+function analizarURL(url, tabId){
 
+  fetch("http://localhost:5000/analizar",{
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({url: url})
+  })
+  .then(res => res.json())
+  .then(data => {
+
+    let resultado = {
+      url,
+      tabId,
+      timestamp: Date.now(),
+      riesgo: data.riesgo
+    };
+
+    chrome.storage.local.set({ ultimoAnalisis: resultado });
+
+    console.log("[Rocket Advisor]", resultado);
+
+    if (resultado.riesgo === "alto") {
+      chrome.tabs.sendMessage(tabId, {
+        accion: "alerta",
+        mensaje: "Sitio malicioso detectado"
+      }, manejarError);
+    } else {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icon.png",
+        title: "Rocket advisor",
+        message: "Sitio seguro"
+      }, manejarError);
+    }
+
+  })
+  .catch(err => {
+    console.error("Error conectando con backend", err);
+  });
+}
+
+function manejarError() {
+  if (chrome.runtime.lastError) {
+    console.log("Error al enviar mensaje:", chrome.runtime.lastError.message);
+  }
+}
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.url) {
+
+    if (tab.url.startsWith("chrome://") || tab.url.startsWith("brave://")) return;
+
+    analizarURL(tab.url, tabId);
+  }
+});
+
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  chrome.tabs.get(tabId, (tab) => {
+    if (!tab.url) return;
+    if (tab.url.startsWith("chrome://") || tab.url.startsWith("brave://")) return;
+
+    analizarURL(tab.url, tabId);
+  });
+});
+
+
+/*
 //esto extrae y compara con la lisna negra de arriba
 function obtenerDominio(url) {
   try {
@@ -76,3 +139,4 @@ function esURLSospechoso(url) {
 
   return patronesSospechosos.some(patron => patron.test(url));
 }
+*/

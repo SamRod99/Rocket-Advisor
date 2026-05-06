@@ -4,10 +4,17 @@
     "version": "1.0",
     "description": "Extension para deteccion de sitios web peligrosos.",
     "action":{
-        "default_popup": "popup/popup.html",
-        "default_icon": "icons/icon.png"
+        "default_popup": "popup.html",
+        "default_icon": "icon.png"
     },
-    "permissions":["activeTab", "tabs", "storage"],
-    "host_permissions": ["<all_urls>"]
+    "background":{
+        "service_worker": "background.js"
+    },
+    "content_scripts":[{
+        "matches": ["<all_urls>"],
+        "js":["content.js"]
+    }],
+    "permissions":["activeTab", "tabs", "storage","notifications"],
+    "host_permissions": ["<all_urls>","http://localhost:5000/*"]
 }
 
