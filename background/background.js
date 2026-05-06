@@ -1,3 +1,26 @@
+const blacklist = [
+  "roblox.com",
+  "netflix.com",
+  "youtube.com"
+];
+
+//esto extrae y compara con la lisna negra de arriba
+function obtenerDominio(url) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
+}
+
+function esURLPeligrosa(url) {
+  const dominio = obtenerDominio(url);
+
+  return blacklist.some(sitio =>
+    dominio === sitio || dominio.endsWith("." + sitio)
+  );
+}
+
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
@@ -9,8 +32,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (url.startsWith("chrome://") || url.startsWith("brave://")) return;
 
     console.log("[Rocket Advisor] URL detectada:", url);
-
-    analyzeURL(url, tabId);
+    
+    analizarURL(url, tabId);
   }
 });
 
@@ -20,7 +43,7 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
     if (tab.url.startsWith("chrome://") || tab.url.startsWith("brave://")) return;
 
     console.log("[Rocket Advisor] Pestaña activa cambiada:", tab.url);
-    analyzeURL(tab.url, tabId);
+    analizarURL(tab.url, tabId);
   });
 });
 
@@ -34,7 +57,8 @@ function analizarURL(url, tabId) {
   };
 
 
-  resultado.esPeligrosa = esURLSospechoso(url);
+  resultado.esPeligrosa = esURLPeligrosa(url);
+  //cambie esto para que funcione con la lista negra y poder enseñarlo al profe
 
 
   chrome.storage.local.set({ ultimoAnalisis: resultado }, () => {
