@@ -25,26 +25,21 @@ function analizarURL(url, tabId){
       chrome.tabs.sendMessage(tabId, {
         accion: "alerta",
         mensaje: "Sitio malicioso detectado"
-      }, manejarError);
+      });
+      console.log("sitio malicioso detectado")
     } else {
       chrome.notifications.create({
         type: "basic",
         iconUrl: "icon.png",
         title: "Rocket advisor",
         message: "Sitio seguro"
-      }, manejarError);
+      });
     }
 
   })
   .catch(err => {
     console.error("Error conectando con backend", err);
   });
-}
-
-function manejarError() {
-  if (chrome.runtime.lastError) {
-    console.log("Error al enviar mensaje:", chrome.runtime.lastError.message);
-  }
 }
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
