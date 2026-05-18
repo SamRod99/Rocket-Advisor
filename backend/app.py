@@ -33,18 +33,20 @@ def construirArbol(texto):
 
     return heap[0]
 
-def generarCodigos(nodo, prefijo="", tabla={}): #aqui se deberia de generar la tabla de codigos
+def generarCodigos(nodo, prefijo="", tabla=None): #aqui se deberia de generar la tabla de codigos
+    if tabla is None:
+        tabla = {}
     if nodo is None:
-        return
+        return tabla
     if nodo.char is not None:
         tabla[nodo.char] = prefijo
-        return
+        return tabla
     generarCodigos(nodo.izq, prefijo + "0", tabla)
     generarCodigos(nodo.der, prefijo + "1", tabla)
     return tabla
 
 def comprimir(texto, tabla): #ya se comprime el texto aqui
-    return "".join(tabla[c] for c in texto)
+    return "".join(tabla[c] for c in texto if c in tabla)
 
 def descomprimir(bits, arbol):
     resultado = []
@@ -58,35 +60,58 @@ def descomprimir(bits, arbol):
 
 
 base_dir = os.path.dirname(__file__)
-ruta = os.path.join(base_dir,"data", "phishing_data.csv")
+ruta = os.path.join(base_dir,"data", "dataset_web_26.csv")
 
 urls_crudos = []
+clasificacion_urls = {}
 
 #cargamos el dataset
 with open(ruta, newline='', encoding='utf-8') as file:
     reader = csv.DictReader(file)
     print(reader.fieldnames)
+
     for row in reader:
-        if row['status'] == 'phishing':
-            urls_crudos.append(row['url'])
+        url = row['url'].strip()
+        tipo = row['type'].strip().lower()
+
+        urls_crudos.append(url)
+        clasificacion_urls[url] = tipo
 
 texto_completo = "\n".join(urls_crudos)
 arbol_huffman = construirArbol(texto_completo)
 tabla_codigos = generarCodigos(arbol_huffman)
 
-blacklist_comprimida = [comprimir(url, tabla_codigos) for url in urls_crudos]
+blacklist_comprimida = []
+
+for url,tipo in clasificacion_urls.items():
+    url_comp = comprimir(url,tabla_codigos)
+    blacklist_comprimida.append((url_comp, tipo))
 
 print(f"urls cargadas: {len(blacklist_comprimida)} links maliciosos")
 print(f"tamaño original: {len(texto_completo)} caracteres")
-print(f"tamaño comprimido: {sum(len(b) for b in blacklist_comprimida)} bits")
+print(f"tamaño comprimido: {sum(len(b[0]) for b in blacklist_comprimida)} bits")
 
 #despues de comprimir busca en la lista
 def es_malicioso(url):
+    url = url.strip().rstrip("/")
     url_comprimida = comprimir(url, tabla_codigos)
-    for bad_url in blacklist_comprimida:
-        if bad_url in url_comprimida:
-            return True
-    return False
+
+    # prueba de verificación
+    url_recuperada = descomprimir(url_comprimida, arbol_huffman)
+
+    print("original:", repr(url))
+    print("recuperada:", repr(url_recuperada))
+
+    for bad_url, tipo in blacklist_comprimida:
+        if bad_url == url_comprimida:
+            if tipo in ["phishing", "malware"]:
+                return "alto"
+            elif tipo == "defacement":
+                return "sospechoso"
+            else:
+                return "seguro"
+
+    return "seguro"
 
 @app.route("/")
 def home():
@@ -97,10 +122,12 @@ def analizar():
     data = request.get_json()
     url = data.get("url", "")
 
-    if es_malicioso(url):
-        return jsonify({"riesgo": "alto"})
-    else:
-        return jsonify({"riesgo": "bajo"})
+    riesgo = es_malicioso(url)
+
+    return jsonify({
+        "url": url,
+        "riesgo": riesgo
+    })
     
 
 if __name__ == "__main__":

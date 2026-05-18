@@ -27,7 +27,14 @@ function analizarURL(url, tabId){
         mensaje: "Sitio malicioso detectado"
       });
       console.log("sitio malicioso detectado")
-    } else {
+    } else if(resultado.riesgo === "sospechoso"){
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icon.png",
+        title: "Rocket advisor",
+        message: "Sitio sospechoso"
+      });
+    }else{
       chrome.notifications.create({
         type: "basic",
         iconUrl: "icon.png",
@@ -35,7 +42,6 @@ function analizarURL(url, tabId){
         message: "Sitio seguro"
       });
     }
-
   })
   .catch(err => {
     console.error("Error conectando con backend", err);
