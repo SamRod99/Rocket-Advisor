@@ -18,19 +18,25 @@ chrome.runtime.onMessage.addListener((msg) => {
   banner.style.zIndex = "9999";
   banner.style.fontWeight = "bold";
 
-  if (msg.accion === "alerta") {
+if (msg.accion === "alerta") {
     banner.style.background = "#ff4d4d";
     banner.style.color = "white";
-    banner.textContent =  msg.mensaje;
+    banner.textContent = msg.mensaje;
+
+  } else if (msg.accion === "sospechoso") {
+    banner.style.background = "#ffcc00";
+    banner.style.color = "black";
+    banner.textContent = msg.mensaje;
+
   } else {
     banner.style.background = "#4CAF50";
     banner.style.color = "white";
-    banner.textContent = "Sitio seguro";
+    banner.textContent = msg.mensaje;
   }
 
   document.body.appendChild(banner);
 
   setTimeout(() => {
-    banner.remove
+    banner.remove();
   }, 3000);
 });
