@@ -76,15 +76,16 @@ tabla_codigos = generarCodigos(arbol_huffman)
 
 blacklist_comprimida = [comprimir(url, tabla_codigos) for url in urls_crudos]
 
+blacklist = [descomprimir(b, arbol_huffman) for b in blacklist_comprimida]
+
 print(f"urls cargadas: {len(blacklist_comprimida)} links maliciosos")
 print(f"tamaño original: {len(texto_completo)} caracteres")
 print(f"tamaño comprimido: {sum(len(b) for b in blacklist_comprimida)} bits")
 
 #despues de comprimir busca en la lista
 def es_malicioso(url):
-    url_comprimida = comprimir(url, tabla_codigos)
-    for bad_url in blacklist_comprimida:
-        if bad_url in url_comprimida:
+    for bad_url in blacklist:
+        if bad_url in url:
             return True
     return False
 
