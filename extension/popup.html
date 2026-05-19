@@ -1,48 +1,43 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rocket Advisor</title>
-
     <style>
         body {
             width: 320px;
             padding: 20px;
             margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: Arial, sans-serif;
             background: #0f172a;
             color: white;
             text-align: center;
         }
-
         .titulo {
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 18px;
             color: #38bdf8;
         }
-
         .pagina-box {
             background: #1e293b;
             padding: 14px;
             border-radius: 12px;
             margin-bottom: 18px;
+            text-align: left;
         }
-
         .pagina-label {
             font-size: 13px;
             color: #94a3b8;
             margin-bottom: 6px;
         }
-
         #pagina {
-            font-size: 14px;
+            font-size: 13px;
             color: #f8fafc;
-            word-break: break-word;
+            word-break: break-all;
+            font-family: monospace;
         }
-
         button {
             width: 100%;
             padding: 12px;
@@ -55,35 +50,29 @@
             cursor: pointer;
             transition: 0.2s;
         }
-
         button:hover {
             background: #0ea5e9;
         }
-
         #resultado {
             margin-top: 16px;
-            font-size: 15px;
+            font-size: 16px;
             color: #cbd5e1;
             font-weight: bold;
         }
     </style>
 </head>
-
 <body>
-
     <div class="titulo">Rocket-Advisor</div>
 
     <div class="pagina-box">
-        <div class="pagina-label">Página actual</div>
-        <div id="pagina">Cargando...</div>
+        <div class="pagina-label">URL de la página:</div>
+        <div id="pagina">Obteniendo URL...</div>
     </div>
 
-    <button id="btn">Mostrar resultados</button>
+    <button id="btn">Ver resultados</button>
 
     <p id="resultado">Sin análisis</p>
 
     <script src="popup.js"></script>
-
 </body>
-
 </html>
