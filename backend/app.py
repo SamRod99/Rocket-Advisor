@@ -22,7 +22,6 @@ def construir_arbol(texto):
     frecuencias = Counter(texto)
     heap = [NodoHuffman(c, f) for c, f in frecuencias.items()]
     heapq.heapify(heap)
-
     while len(heap) > 1:
         izq = heapq.heappop(heap)
         der = heapq.heappop(heap)
@@ -30,21 +29,25 @@ def construir_arbol(texto):
         padre.izq = izq
         padre.der = der
         heapq.heappush(heap, padre)
-
     return heap[0]
 
-def generar_codigos(nodo, prefijo="", tabla={}):
+
+def generar_codigos(nodo, prefijo="", tabla=None):
+    if tabla is None:
+        tabla = {}
     if nodo is None:
-        return
+        return tabla
     if nodo.char is not None:
         tabla[nodo.char] = prefijo
-        return
+        return tabla
     generar_codigos(nodo.izq, prefijo + "0", tabla)
     generar_codigos(nodo.der, prefijo + "1", tabla)
     return tabla
 
+
 def comprimir(texto, tabla):
-    return "".join(tabla[c] for c in texto)
+    return "".join(tabla[c] for c in texto if c in tabla)
+
 
 def descomprimir(bits, arbol):
     resultado = []
@@ -56,48 +59,82 @@ def descomprimir(bits, arbol):
             nodo = arbol
     return "".join(resultado)
 
-base_dir = os.path.dirname(__file__)
-ruta = os.path.join(base_dir, "data", "phishing_data.csv")
+def normalizar(url: str) -> str:
+    url = url.strip()
+    url = url.split("#")[0]
+    url = url.rstrip("/")
+    if url.startswith("https://"):
+        url = url[8:]
+    elif url.startswith("http://"):
+        url = url[7:]
+    return url
 
-urls_raw = []
+#cargamos el dataset
+base_dir = os.path.dirname(__file__)
+ruta = os.path.join(base_dir, "data", "dataset_web_26.csv")
+
+urls_peligrosas  = []  # phishing/malware  → riesgo alto
+urls_sospechosas = []  # defacement          → riesgo sospechoso
+
 with open(ruta, newline='', encoding='utf-8') as file:
     reader = csv.DictReader(file)
     for row in reader:
-        if row['status'] == 'phishing':
-            urls_raw.append(row['url'])
+        tipo = row['type']
+        if tipo in ('phishing', 'malware'):
+            urls_peligrosas.append(normalizar(row['url']))
+        elif tipo == 'defacement':
+            urls_sospechosas.append(normalizar(row['url']))
 
-texto_completo = "\n".join(urls_raw)
+texto_completo = "\n".join(urls_peligrosas + urls_sospechosas)
 arbol_huffman  = construir_arbol(texto_completo)
 tabla_codigos  = generar_codigos(arbol_huffman)
 
-blacklist_comprimida = [comprimir(url, tabla_codigos) for url in urls_raw]
+blacklist_peligrosas  = [comprimir(url, tabla_codigos) for url in urls_peligrosas]
+blacklist_sospechosas = [comprimir(url, tabla_codigos) for url in urls_sospechosas]
 
-blacklist = [descomprimir(b, arbol_huffman) for b in blacklist_comprimida]
+chars_peligrosas  = sum(len(u) for u in urls_peligrosas)
+chars_sospechosas = sum(len(u) for u in urls_sospechosas)
+bits_peligrosas   = sum(len(b) for b in blacklist_peligrosas)
+bits_sospechosas  = sum(len(b) for b in blacklist_sospechosas)
 
-print(f"URLs cargadas:    {len(blacklist)}")
-print(f"Tamaño original:  {len(texto_completo)} chars")
-print(f"Tamaño comprimido:{sum(len(b) for b in blacklist_comprimida)} bits")
+print(f"url's de phishing+malware): {len(blacklist_peligrosas)}")
+print(f"Original: {chars_peligrosas * 8} bits  →  Comprimido: {bits_peligrosas} bits")
+print(f"url's defacement: {len(blacklist_sospechosas)}")
+print(f"Original: {chars_sospechosas * 8} bits  →  Comprimido: {bits_sospechosas} bits")
 
+def clasificar(url: str) -> str:
+    url = normalizar(url)
 
-def es_malicioso(url):
-    for bad_url in blacklist:
-        if bad_url in url:
-            return True
-    return False
+    if any(c not in tabla_codigos for c in url):
+        return "bajo"
+
+    url_comprimida = comprimir(url, tabla_codigos)
+
+    for i, bad_bits in enumerate(blacklist_peligrosas):
+        bad_url = urls_peligrosas[i]
+        if url_comprimida == bad_bits or url.endswith("." + bad_url):
+            return "alto"
+
+    for i, bad_bits in enumerate(blacklist_sospechosas):
+        bad_url = urls_sospechosas[i]
+        if url_comprimida == bad_bits or url.endswith("." + bad_url):
+            return "sospechoso"
+
+    return "bajo"
 
 
 @app.route("/")
 def home():
-    return "EL back funciona"
+    return "El back funciona"
 
 @app.route("/analizar", methods=["POST"])
 def analizar():
     data = request.get_json()
-    url = data.get("url", "")
-    if es_malicioso(url):
-        return jsonify({"riesgo": "alto"})
-    else:
-        return jsonify({"riesgo": "bajo"})
+    url  = data.get("url", "")
+    print(f"[DEBUG] URL recibida:    '{url}'")
+    print(f"[DEBUG] URL normalizada: '{normalizar(url)}'")
+    return jsonify({"riesgo": clasificar(url)})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
