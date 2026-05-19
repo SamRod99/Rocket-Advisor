@@ -73,8 +73,8 @@ def normalizar(url: str) -> str:
 base_dir = os.path.dirname(__file__)
 ruta = os.path.join(base_dir, "data", "dataset_web_26.csv")
 
-urls_peligrosas  = []  # phishing/malware  → riesgo alto
-urls_sospechosas = []  # defacement          → riesgo sospechoso
+urls_peligrosas  = []  # phishing/malware  → riesgo alto - original
+urls_sospechosas = []  # defacement          → riesgo sospechoso - orginal
 
 with open(ruta, newline='', encoding='utf-8') as file:
     reader = csv.DictReader(file)
@@ -89,8 +89,8 @@ texto_completo = "\n".join(urls_peligrosas + urls_sospechosas)
 arbol_huffman  = construir_arbol(texto_completo)
 tabla_codigos  = generar_codigos(arbol_huffman)
 
-blacklist_peligrosas  = [comprimir(url, tabla_codigos) for url in urls_peligrosas]
-blacklist_sospechosas = [comprimir(url, tabla_codigos) for url in urls_sospechosas]
+blacklist_peligrosas  = [comprimir(url, tabla_codigos) for url in urls_peligrosas] #lista comprimida
+blacklist_sospechosas = [comprimir(url, tabla_codigos) for url in urls_sospechosas] #lista comprimida
 
 chars_peligrosas  = sum(len(u) for u in urls_peligrosas)
 chars_sospechosas = sum(len(u) for u in urls_sospechosas)
@@ -98,28 +98,39 @@ bits_peligrosas   = sum(len(b) for b in blacklist_peligrosas)
 bits_sospechosas  = sum(len(b) for b in blacklist_sospechosas)
 
 print(f"url's de phishing+malware): {len(blacklist_peligrosas)}")
-print(f"Original: {chars_peligrosas * 8} bits  →  Comprimido: {bits_peligrosas} bits")
+print(f"Original: {chars_peligrosas * 8} bits -> Comprimido: {bits_peligrosas} bits")
 print(f"url's defacement: {len(blacklist_sospechosas)}")
-print(f"Original: {chars_sospechosas * 8} bits  →  Comprimido: {bits_sospechosas} bits")
+print(f"Original: {chars_sospechosas * 8} bits -> Comprimido: {bits_sospechosas} bits")
+
+cache_urls = {}
 
 def clasificar(url: str) -> str:
     url = normalizar(url)
 
+    if url in cache_urls:
+        print(f"url consultado en cache: {url}")
+        return cache_urls[url]
+
     if any(c not in tabla_codigos for c in url):
+        cache_urls[url] = "bajo"
         return "bajo"
 
     url_comprimida = comprimir(url, tabla_codigos)
 
+    #fuerza brura, recorremos con indice y valor
     for i, bad_bits in enumerate(blacklist_peligrosas):
         bad_url = urls_peligrosas[i]
         if url_comprimida == bad_bits or url.endswith("." + bad_url):
+            cache_urls[url] = "alto"
             return "alto"
 
     for i, bad_bits in enumerate(blacklist_sospechosas):
         bad_url = urls_sospechosas[i]
         if url_comprimida == bad_bits or url.endswith("." + bad_url):
+            cache_urls[url] = "sospechoso"
             return "sospechoso"
 
+    cache_urls[url] = "bajo"
     return "bajo"
 
 
